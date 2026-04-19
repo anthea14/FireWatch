@@ -28,7 +28,7 @@ All models sorted by Recall (most critical metric — missing a real fire is far
 
 ---
 
-## Project Structure
+```
 wildfire-app/
 ├── app/
 │   └── main.py              ← FastAPI backend
@@ -40,6 +40,7 @@ wildfire-app/
 │   └── index.html           ← Frontend UI
 ├── requirements.txt
 └── Dockerfile
+```
 
 ---
 
