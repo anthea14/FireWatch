@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FireWatch — Wildfire Detection</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0a0b0f;
+    --surface:  #111318;
+    --border:   #1e2230;
+    --border2:  #252840;
+    --text:     #e8eaf2;
+    --muted:    #6b7280;
+    --accent:   #ff4d1c;
+    --accent2:  #ff8c42;
+    --safe:     #22c55e;
+    --warn:     #f59e0b;
+    --crit:     #ef4444;
+    --mono:     'Space Mono', monospace;
+    --sans:     'Syne', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Background grid ─────────────────────────── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(rgba(255,77,28,.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,77,28,.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  /* ── Layout ──────────────────────────────────── */
+  .wrapper { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 0 24px 80px; }
+
+  /* ── Header ──────────────────────────────────── */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 28px 0 40px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo { display: flex; align-items: center; gap: 14px; }
+  .logo-icon {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: grid; place-items: center;
+    font-size: 22px;
+    box-shadow: 0 0 24px rgba(255,77,28,.4);
+  }
+  .logo-text { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+  .logo-text span { color: var(--accent); }
+  .badge {
+    font-family: var(--mono); font-size: 11px;
+    padding: 4px 10px; border: 1px solid var(--border2);
+    border-radius: 4px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+
+  /* ── Hero ────────────────────────────────────── */
+  .hero { padding: 60px 0 48px; }
+  .hero h1 {
+    font-size: clamp(36px, 5vw, 60px); font-weight: 800;
+    line-height: 1.05; letter-spacing: -1.5px;
+    max-width: 700px;
+  }
+  .hero h1 em { color: var(--accent); font-style: normal; }
+  .hero p {
+    margin-top: 18px; color: var(--muted);
+    max-width: 520px; line-height: 1.7; font-size: 15px; font-weight: 400;
+  }
+
+  /* ── Grid ────────────────────────────────────── */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+
+  /* ── Card ────────────────────────────────────── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    position: relative; overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,77,28,.4), transparent);
+  }
+  .card-label {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 16px;
+  }
+
+  /* ── Upload zone ─────────────────────────────── */
+  .upload-zone {
+    border: 2px dashed var(--border2);
+    border-radius: 12px;
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    position: relative;
+  }
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--accent);
+    background: rgba(255,77,28,.04);
+  }
+  .upload-zone input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer;
+  }
+  .upload-icon { font-size: 40px; margin-bottom: 14px; }
+  .upload-zone h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .upload-zone p { font-size: 13px; color: var(--muted); }
+
+  .preview-img {
+    width: 100%; border-radius: 10px; display: none;
+    max-height: 280px; object-fit: cover;
+  }
+
+  /* ── Button ──────────────────────────────────── */
+  .btn {
+    width: 100%; margin-top: 16px;
+    padding: 14px 24px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; border-radius: 10px; cursor: pointer;
+    font-family: var(--sans); font-size: 15px; font-weight: 700;
+    color: #fff; letter-spacing: 0.3px;
+    transition: opacity .2s, transform .15s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* ── Result panel ────────────────────────────── */
+  #result-panel { display: none; }
+
+  /* ── Risk meter ──────────────────────────────── */
+  .risk-row { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+  .score-circle {
+    width: 90px; height: 90px; flex-shrink: 0;
+    border-radius: 50%;
+    border: 4px solid var(--border);
+    display: grid; place-items: center;
+    font-family: var(--mono); font-size: 28px; font-weight: 700;
+    transition: border-color .4s, color .4s;
+  }
+  .risk-info h2 { font-size: 22px; font-weight: 800; }
+  .risk-info p { font-size: 13px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+
+  /* ── Meter bar ───────────────────────────────── */
+  .meter-bar-track {
+    height: 8px; background: var(--border); border-radius: 4px;
+    overflow: hidden; margin: 14px 0 6px;
+  }
+  .meter-bar-fill {
+    height: 100%; border-radius: 4px; width: 0;
+    transition: width .6s cubic-bezier(.22,1,.36,1), background .4s;
+  }
+  .meter-labels {
+    display: flex; justify-content: space-between;
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+  }
+
+  /* ── Stat row ────────────────────────────────── */
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+  .stat {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 14px;
+  }
+  .stat-label { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+  .stat-val { font-family: var(--mono); font-size: 20px; font-weight: 700; margin-top: 4px; }
+
+  /* ── Grad-CAM ────────────────────────────────── */
+  .cam-wrap { position: relative; border-radius: 10px; overflow: hidden; }
+  .cam-wrap img { width: 100%; display: block; border-radius: 10px; }
+  .cam-legend {
+    position: absolute; bottom: 10px; right: 10px;
+    background: rgba(0,0,0,.7); border-radius: 6px; padding: 6px 10px;
+    font-family: var(--mono); font-size: 10px; color: #fff;
+  }
+
+  /* ── Tiers legend ────────────────────────────── */
+  .tiers { margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .tier {
+    flex: 1; min-width: 80px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px;
+    text-align: center;
+  }
+  .tier-dot { width: 8px; height: 8px; border-radius: 50%; margin: 0 auto 6px; }
+  .tier-name { font-weight: 700; font-size: 13px; }
+  .tier-range { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  /* ── Benchmark table ──────────────────────────── */
+  #bench-section { margin-top: 40px; }
+  .table-wrap { overflow-x: auto; margin-top: 16px; }
+  table {
+    width: 100%; border-collapse: collapse;
+    font-family: var(--mono); font-size: 12px;
+  }
+  thead tr { border-bottom: 1px solid var(--border2); }
+  th { text-align: left; padding: 10px 14px; color: var(--muted); font-weight: 400; text-transform: uppercase; letter-spacing: 1px; }
+  td { padding: 11px 14px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  .best-row td { color: var(--accent2); }
+  .bar-cell { display: flex; align-items: center; gap: 8px; }
+  .mini-bar { flex: 1; height: 4px; background: var(--border); border-radius: 2px; }
+  .mini-bar-fill { height: 100%; background: var(--accent); border-radius: 2px; }
+
+  /* ── Loading spinner ──────────────────────────── */
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,.3);
+    border-top-color: #fff; border-radius: 50%;
+    animation: spin .6s linear infinite; display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Demo banner ──────────────────────────────── */
+  .demo-banner {
+    background: rgba(245,158,11,.08);
+    border: 1px solid rgba(245,158,11,.25);
+    border-radius: 8px; padding: 12px 16px;
+    font-size: 13px; color: #f59e0b;
+    margin-bottom: 20px; display: none;
+    font-family: var(--mono);
+  }
+
+  /* ── Footer ──────────────────────────────────── */
+  footer {
+    margin-top: 80px; padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-family: var(--mono); font-size: 11px;
+    color: var(--muted); letter-spacing: 0.5px;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: gap;
+  }
+
+  /* ── Animations ──────────────────────────────── */
+  .fade-in { animation: fadeIn .5s ease both; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🔥</div>
+      <div class="logo-text">Fire<span>Watch</span></div>
+    </div>
+    <div class="badge">Wildfire Detection System</div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <h1>Satellite <em>wildfire</em><br>detection at scale.</h1>
+    <p>Upload a satellite patch — get a calibrated risk score (0–100), confidence estimate, and Grad-CAM explanation showing exactly which pixels drove the prediction.</p>
+  </section>
+
+  <!-- Demo banner -->
+  <div class="demo-banner" id="demo-banner">
+    ⚠ DEMO MODE — No model weights found. Add best_model.pt and deploy_config.json to the /models directory.
+  </div>
+
+  <!-- Main grid -->
+  <div class="grid">
+
+    <!-- Upload card -->
+    <div class="card">
+      <div class="card-label">// Upload satellite image</div>
+      <div class="upload-zone" id="drop-zone">
+        <input type="file" id="file-input" accept="image/*">
+        <div class="upload-icon">🛰️</div>
+        <h3>Drop image here</h3>
+        <p>Supports JPG, PNG, TIFF<br>350 × 350 px recommended</p>
+      </div>
+      <img class="preview-img" id="preview" alt="Preview">
+      <button class="btn" id="predict-btn" disabled>
+        <div class="spinner" id="spinner"></div>
+        <span id="btn-text">Analyse Image</span>
+      </button>
+    </div>
+
+    <!-- Result card -->
+    <div class="card" id="result-panel">
+      <div class="card-label">// Risk assessment</div>
+
+      <div class="risk-row">
+        <div class="score-circle" id="score-circle">--</div>
+        <div class="risk-info">
+          <h2 id="tier-label">—</h2>
+          <p id="tier-desc">Upload a satellite image to begin analysis.</p>
+        </div>
+      </div>
+
+      <div class="meter-bar-track">
+        <div class="meter-bar-fill" id="meter-fill"></div>
+      </div>
+      <div class="meter-labels"><span>0</span><span>50</span><span>100</span></div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-label">Fire Probability</div>
+          <div class="stat-val" id="stat-prob">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Calibrated Conf.</div>
+          <div class="stat-val" id="stat-cal">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Model</div>
+          <div class="stat-val" style="font-size:12px;margin-top:6px" id="stat-model">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Inference</div>
+          <div class="stat-val" id="stat-ms">—</div>
+        </div>
+      </div>
+
+      <!-- Tiers legend -->
+      <div class="tiers">
+        <div class="tier">
+          <div class="tier-dot" style="background:var(--safe)"></div>
+          <div class="tier-name">Low</div>
+          <div class="tier-range">0–29</div>
+        </div>
+        <div class="tier">
+          <div class="tier-dot" style="background:var(--warn)"></div>
+          <div class="tier-name">Elevated</div>
+          <div class="tier-range">30–59</div>
+        </div>
+        <div class="tier">
+          <div class="tier-dot" style="background:var(--crit)"></div>
+          <div class="tier-name">Critical</div>
+          <div class="tier-range">60–100</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /grid -->
+
+  <!-- Grad-CAM card (full width) -->
+  <div class="card" id="cam-card" style="margin-top:20px;display:none">
+    <div class="card-label">// Grad-CAM explainability — what the model sees</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Original</p>
+        <img id="cam-original" src="" alt="Original" style="width:100%;border-radius:10px">
+      </div>
+      <div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Grad-CAM overlay</p>
+        <div class="cam-wrap">
+          <img id="cam-overlay" src="" alt="Grad-CAM">
+          <div class="cam-legend">🔴 High activation → fire signal</div>
+        </div>
+      </div>
+    </div>
+    <p style="margin-top:14px;font-size:13px;color:var(--muted);line-height:1.6">
+      Heat map shows which image regions most influenced the prediction.
+      Red/yellow areas = strongest fire signal. Use this to verify the model is attending to smoke plumes and thermal anomalies, not image artifacts.
+    </p>
+  </div>
+
+  <!-- Benchmark table -->
+  <section id="bench-section">
+    <div class="card" style="margin-top:20px">
+      <div class="card-label">// Model benchmark results</div>
+      <div class="table-wrap" id="bench-table-wrap">
+        <p style="color:var(--muted);font-size:13px;font-family:var(--mono)">Loading benchmark results…</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>FireWatch v1.0 — ResNet50 · EfficientNetV2-S · MobileNetV3 · ConvNeXt-Tiny · Swin-T</span>
+    <span>Dataset: Wildfire Prediction (42,850 images)</span>
+  </footer>
+</div><!-- /wrapper -->
+
+<script>
+const API = ''; // same origin — FastAPI serves this page
+
+// ── Elements ──────────────────────────────────────────────────────────────
+const dropZone   = document.getElementById('drop-zone');
+const fileInput  = document.getElementById('file-input');
+const preview    = document.getElementById('preview');
+const predictBtn = document.getElementById('predict-btn');
+const spinner    = document.getElementById('spinner');
+const btnText    = document.getElementById('btn-text');
+const resultPanel = document.getElementById('result-panel');
+const camCard    = document.getElementById('cam-card');
+
+let selectedFile = null;
+
+// ── Drag & drop ───────────────────────────────────────────────────────────
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('dragover');
+  const f = e.dataTransfer.files[0];
+  if (f) handleFile(f);
+});
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
+
+function handleFile(f) {
+  selectedFile = f;
+  const url = URL.createObjectURL(f);
+  preview.src = url;
+  preview.style.display = 'block';
+  dropZone.style.display = 'none';
+  document.getElementById('cam-original').src = url;
+  predictBtn.disabled = false;
+  resultPanel.style.display = 'none';
+  camCard.style.display = 'none';
+}
+
+// ── Predict ───────────────────────────────────────────────────────────────
+predictBtn.addEventListener('click', async () => {
+  if (!selectedFile) return;
+
+  predictBtn.disabled = true;
+  spinner.style.display = 'block';
+  btnText.textContent = 'Analysing…';
+
+  const fd = new FormData();
+  fd.append('file', selectedFile);
+
+  try {
+    const res  = await fetch(`${API}/predict`, { method: 'POST', body: fd });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    renderResult(data);
+  } catch (err) {
+    alert('Error: ' + err.message);
+  } finally {
+    predictBtn.disabled = false;
+    spinner.style.display = 'none';
+    btnText.textContent = 'Analyse Image';
+  }
+});
+
+function renderResult(d) {
+  // Show result panel
+  resultPanel.style.display = 'block';
+  resultPanel.classList.add('fade-in');
+
+  // Demo mode banner
+  document.getElementById('demo-banner').style.display = d.demo_mode ? 'block' : 'none';
+
+  // Score circle
+  const circle = document.getElementById('score-circle');
+  circle.textContent = d.confidence_score;
+  circle.style.borderColor = d.confidence_color;
+  circle.style.color = d.confidence_color;
+
+  // Tier label
+  document.getElementById('tier-label').textContent = d.confidence_tier + ' Risk';
+  const descs = {
+    Low:      'No significant wildfire indicators detected. Continue routine monitoring.',
+    Elevated: 'Possible fire precursors detected. Recommend closer inspection.',
+    Critical: 'High probability of active wildfire. Immediate response recommended.',
+  };
+  document.getElementById('tier-desc').textContent = descs[d.confidence_tier] || '';
+
+  // Meter bar
+  const fill = document.getElementById('meter-fill');
+  fill.style.width = d.confidence_score + '%';
+  fill.style.background = d.confidence_color;
+
+  // Stats
+  document.getElementById('stat-prob').textContent  = (d.fire_prob_raw * 100).toFixed(1) + '%';
+  document.getElementById('stat-cal').textContent   = (d.fire_prob_cal * 100).toFixed(1) + '%';
+  document.getElementById('stat-model').textContent = d.model_name;
+  document.getElementById('stat-ms').textContent    = d.inference_ms.toFixed(0) + ' ms';
+
+  // Grad-CAM
+  if (d.gradcam_b64) {
+    camCard.style.display = 'block';
+    camCard.classList.add('fade-in');
+    document.getElementById('cam-overlay').src = 'data:image/png;base64,' + d.gradcam_b64;
+  }
+}
+
+// ── Load benchmark table ──────────────────────────────────────────────────
+async function loadBenchmark() {
+  try {
+    const res = await fetch(`${API}/metrics`);
+    const data = await res.json();
+    if (data.message) { document.getElementById('bench-table-wrap').innerHTML = `<p style="color:var(--muted);font-size:13px;font-family:var(--mono)">${data.message}</p>`; return; }
+
+    const models = Object.keys(data);
+    const best   = models.reduce((a, b) => data[a].recall > data[b].recall ? a : b);
+
+    const METRICS = ['accuracy','f1','recall','precision','auc_roc','inference_ms','model_size_mb'];
+    const LABELS  = ['Accuracy','F1','Recall ⬆','Precision','AUC-ROC','Inf (ms)','Size (MB)'];
+
+    let html = `<table>
+      <thead><tr><th>Model</th>${LABELS.map(l => `<th>${l}</th>`).join('')}</tr></thead>
+      <tbody>`;
+
+    models.forEach(m => {
+      const isBest = m === best;
+      html += `<tr class="${isBest ? 'best-row' : ''}">
+        <td>${isBest ? '★ ' : ''}${m}</td>`;
+      METRICS.forEach((k, i) => {
+        const val = data[m][k];
+        const isPercent = i < 5;
+        const display = isPercent ? (val * 100).toFixed(1) + '%' : (val || '—');
+        if (isPercent) {
+          const pct = (val * 100).toFixed(0);
+          html += `<td><div class="bar-cell">
+            <div class="mini-bar"><div class="mini-bar-fill" style="width:${pct}%"></div></div>
+            <span>${display}</span></div></td>`;
+        } else {
+          html += `<td>${display}</td>`;
+        }
+      });
+      html += '</tr>';
+    });
+
+    html += '</tbody></table>';
+    document.getElementById('bench-table-wrap').innerHTML = html;
+  } catch {
+    document.getElementById('bench-table-wrap').innerHTML =
+      `<p style="color:var(--muted);font-size:13px;font-family:var(--mono)">Could not load benchmark data.</p>`;
+  }
+}
+
+// ── Health check ──────────────────────────────────────────────────────────
+async function checkHealth() {
+  try {
+    const res = await fetch(`${API}/health`);
+    const d = await res.json();
+    if (d.demo_mode) document.getElementById('demo-banner').style.display = 'block';
+  } catch {}
+}
+
+checkHealth();
+loadBenchmark();
+</script>
+</body>
+</html>

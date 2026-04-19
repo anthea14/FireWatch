@@ -1,0 +1,43 @@
+{
+  "resnet50": {
+    "accuracy": 0.9895238280296326,
+    "f1": 0.9905117750167847,
+    "precision": 0.991081714630127,
+    "recall": 0.9899425506591797,
+    "auc_roc": 0.9991767406463623,
+    "inference_ms": 5.62,
+    "model_size_mb": 94.37,
+    "checkpoint": "/content/drive/MyDrive/wildfire_project/outputs/resnet50_best.pt"
+  },
+  "tf_efficientnetv2_s": {
+    "accuracy": 0.9931746125221252,
+    "f1": 0.9938156008720398,
+    "precision": 0.9948171377182007,
+    "recall": 0.9928160905838013,
+    "auc_roc": 0.9996156692504883,
+    "inference_ms": 18.85,
+    "model_size_mb": 81.63,
+    "checkpoint": "/content/drive/MyDrive/wildfire_project/outputs/tf_efficientnetv2_s_best.pt"
+  },
+  "mobilenetv3_large_100": {
+    "accuracy": 0.9903174638748169,
+    "f1": 0.9912141561508179,
+    "precision": 0.9936470985412598,
+    "recall": 0.9887930750846863,
+    "auc_roc": 0.998892068862915,
+    "inference_ms": 6.09,
+    "model_size_mb": 17.03,
+    "checkpoint": "/content/drive/MyDrive/wildfire_project/outputs/mobilenetv3_large_100_best.pt"
+  },
+  "convnext_tiny": {
+    "accuracy": 0.9961904883384705,
+    "f1": 0.9965527057647705,
+    "precision": 0.9962664842605591,
+    "recall": 0.9968391060829163,
+    "auc_roc": 0.9992398619651794,
+    "inference_ms": 6.37,
+    "model_size_mb": 111.36,
+    "checkpoint": "/content/drive/MyDrive/wildfire_project/outputs/convnext_tiny_best.pt",
+    "temperature": 0.5195338129997253
+  }
+}
